@@ -2,109 +2,6 @@
 
 ![ERD](teslaERD.svg)
 
-```mermaid
-erDiagram
-    USERS ||--o| VEHICLES : "1:1 drives"
-    USERS ||--o{ RIDE_REQUESTS : "1:M books"
-    USERS |o--o{ RIDE_EVENTS : "1:M acts in"
-
-    VEHICLES ||--o{ POOLS : "1:M runs"
-    POOLS |o--o{ RIDE_REQUESTS : "1:M contains"
-    POOLS |o--o{ RIDE_EVENTS : "1:M logs"
-    RIDE_REQUESTS |o--o{ RIDE_EVENTS : "1:M logs"
-
-    ZONES ||--o{ RIDE_REQUESTS : "1:M pickup"
-    ZONES ||--o{ RIDE_REQUESTS : "1:M destination"
-    ZONES ||--o{ POOLS : "1:M pickup"
-    ZONES |o--o{ VEHICLES : "1:M current zone"
-    ZONES ||--o{ ZONE_ADJACENCY : "1:M neighbor of"
-    ZONES ||--o{ ZONE_DISTANCES : "1:M distance from"
-
-    USERS {
-        uuid id PK
-        text name
-        text phone UK "BD format 01XXXXXXXXX"
-        text password_hash "bcrypt"
-        user_role role "PASSENGER or DRIVER"
-        timestamptz created_at
-    }
-
-    VEHICLES {
-        uuid id PK
-        uuid driver_id FK, UK "one vehicle per driver"
-        text name "Bullet"
-        text plate UK
-        int capacity "CHECK 1 to 6"
-        boolean is_online
-        int current_zone_id FK "set when going online"
-        timestamptz created_at
-    }
-
-    ZONES {
-        int id PK
-        text name UK "Banani, Gulshan 1, Mohakhali"
-        numeric lat "display only"
-        numeric lng "display only"
-    }
-
-    ZONE_ADJACENCY {
-        int zone_a_id PK, FK "CHECK a less than b"
-        int zone_b_id PK, FK
-    }
-
-    ZONE_DISTANCES {
-        int zone_a_id PK, FK "CHECK a less than b"
-        int zone_b_id PK, FK
-        int distance_m "CHECK greater than 0"
-    }
-
-    POOLS {
-        uuid id PK
-        uuid vehicle_id FK
-        int pickup_zone_id FK
-        pool_status status
-        boolean is_shared "from first request allow_pool"
-        int capacity "snapshot of vehicle capacity"
-        int seats_taken "CHECK 0 to capacity"
-        timestamptz created_at
-    }
-
-    RIDE_REQUESTS {
-        uuid id PK
-        uuid passenger_id FK
-        uuid pool_id FK "null until matched"
-        int pickup_zone_id FK
-        int dest_zone_id FK "CHECK not equal pickup"
-        int seats "CHECK at least 1"
-        boolean allow_pool
-        request_status status
-        int distance_m "copied at booking"
-        int est_solo_fare "paisa"
-        int est_pooled_fare "paisa"
-        int base_fare "paisa, set at START"
-        int distance_charge "paisa, set at START"
-        int pool_discount "paisa, set at START"
-        int final_fare "paisa, set at START"
-        payment_method payment_method "CASH only in MVP"
-        cancel_reason cancel_reason "PASSENGER or NO_SHOW"
-        timestamptz requested_at "reset on re-queue, drives expiry"
-        timestamptz created_at
-    }
-
-    RIDE_EVENTS {
-        bigint id PK
-        uuid ride_request_id FK "nullable"
-        uuid pool_id FK "nullable"
-        text from_status "null on creation"
-        text to_status
-        uuid actor_user_id FK "null means SYSTEM"
-        text reason
-        timestamptz created_at
-    }
-```
-
-**Reading the lines:** `||` = exactly one, `o{` = zero or many (M), `|o` / `o|` = zero or one. So `USERS ||--o{ RIDE_REQUESTS` reads "one user books many ride requests".
-
 ## Enums
 | Enum | Values |
 |---|---|
@@ -114,7 +11,7 @@ erDiagram
 | `payment_method` | CASH (TESLAPAY is a stretch goal) |
 | `cancel_reason` | PASSENGER, NO_SHOW |
 
-## Constraints Mermaid can't show (added by hand in the migration SQL)
+## Constraints and indexes (added by hand in the migration SQL)
 ```sql
 -- capacity can never be exceeded, even by buggy code
 ALTER TABLE pools ADD CONSTRAINT pools_seats_within_capacity
