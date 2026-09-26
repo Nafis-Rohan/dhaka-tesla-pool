@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="10AauyoRxzf466XuLMeI">
+    <mxGraphModel dx="2054" dy="1092" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="OlXV3wYEdwk1OmvH65de-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;browser&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="150" x="100" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;span style=&quot;font-size: 18px;&quot;&gt;Netlify&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-size: 18px;&quot;&gt;static React build&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="580" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;span style=&quot;font-size: 18px;&quot;&gt;Render free&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;font-size: 18px;&quot;&gt;Express API&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="70" width="200" x="580" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-5" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" value="&lt;div&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;Neon&amp;nbsp;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font style=&quot;font-size: 18px;&quot;&gt;PostgreSQL&lt;/font&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="180" x="950" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-6" edge="1" parent="1" source="OlXV3wYEdwk1OmvH65de-1" style="endArrow=classic;html=1;rounded=0;curved=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="OlXV3wYEdwk1OmvH65de-4" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="400" y="370" />
+            </Array>
+            <mxPoint x="480" y="330" as="sourcePoint" />
+            <mxPoint x="530" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-7" edge="1" parent="1" source="OlXV3wYEdwk1OmvH65de-1" style="endArrow=classic;html=1;rounded=0;curved=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="OlXV3wYEdwk1OmvH65de-3" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="120" />
+            </Array>
+            <mxPoint x="350" y="210" as="sourcePoint" />
+            <mxPoint x="400" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-8" edge="1" parent="1" source="OlXV3wYEdwk1OmvH65de-4" style="endArrow=classic;html=1;rounded=0;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="OlXV3wYEdwk1OmvH65de-5" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="850" y="400" as="sourcePoint" />
+            <mxPoint x="900" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-9" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 17px;&quot;&gt;GET static files&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="140" x="300" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="OlXV3wYEdwk1OmvH65de-10" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 17px;&quot;&gt;HTTPS REST + JWT&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="180" x="260" y="340" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
