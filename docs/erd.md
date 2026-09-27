@@ -2,6 +2,115 @@
 
 ![ERD](teslaERD.svg)
 
+## Mermaid — AI-generated, for a more readable view
+
+```mermaid
+erDiagram
+    USERS ||--o| VEHICLES : "drives (driver_id FK, one Tesla per driver)"
+    USERS ||--o{ RIDE_REQUESTS : "books (passenger_id FK)"
+    USERS |o--o{ RIDE_EVENTS : "acted as (actor_user_id FK, nullable)"
+
+    VEHICLES ||--o{ POOLS : "runs (vehicle_id FK)"
+    VEHICLES }o--|| ZONES : "currently parked in (current_zone_id FK, nullable)"
+
+    POOLS |o--o{ RIDE_REQUESTS : "holds (pool_id FK, nullable)"
+    POOLS |o--o{ RIDE_EVENTS : "logs (pool_id FK, nullable)"
+    POOLS }o--|| ZONES : "picks up in (pickup_zone_id FK)"
+
+    RIDE_REQUESTS |o--o{ RIDE_EVENTS : "logs (ride_request_id FK, nullable)"
+    RIDE_REQUESTS }o--|| ZONES : "picks up in (pickup_zone_id FK)"
+    RIDE_REQUESTS }o--|| ZONES : "drops off in (dest_zone_id FK)"
+
+    ZONES ||--o{ ZONE_ADJACENCY : "zone A side of pair (zone_a_id FK)"
+    ZONES ||--o{ ZONE_ADJACENCY : "zone B side of pair (zone_b_id FK)"
+    ZONES ||--o{ ZONE_DISTANCES : "zone A side of pair (zone_a_id FK)"
+    ZONES ||--o{ ZONE_DISTANCES : "zone B side of pair (zone_b_id FK)"
+
+    USERS {
+        uuid id PK
+        text name "e.g. Jashim, Nusrat"
+        text phone UK "BD format, e.g. 017XXXXXXXX"
+        text password_hash "bcrypt hash, never plain text"
+        user_role role "PASSENGER or DRIVER"
+        timestamptz created_at
+    }
+
+    VEHICLES {
+        uuid id PK
+        uuid driver_id FK,UK "one vehicle per driver"
+        text name "e.g. Bullet"
+        text plate
+        int capacity "1-6, e.g. 3 for Bullet"
+        bool is_online
+        uuid current_zone_id FK "nullable, set when driver goes online"
+    }
+
+    ZONES {
+        uuid id PK
+        text name UK "Banani, Gulshan 1, Mohakhali"
+        numeric lat "for display only, not routing"
+        numeric lng "for display only, not routing"
+    }
+
+    ZONE_ADJACENCY {
+        uuid zone_a_id PK,FK "composite PK, zone_a_id < zone_b_id"
+        uuid zone_b_id PK,FK "composite PK, zone_a_id < zone_b_id"
+    }
+
+    ZONE_DISTANCES {
+        uuid zone_a_id PK,FK "composite PK, zone_a_id < zone_b_id"
+        uuid zone_b_id PK,FK "composite PK, zone_a_id < zone_b_id"
+        int distance_m "e.g. Banani-Mohakhali = 2500"
+    }
+
+    POOLS {
+        uuid id PK
+        uuid vehicle_id FK
+        uuid pickup_zone_id FK
+        pool_status status "MATCHED, DRIVER_ARRIVED, STARTED, COMPLETED, CANCELLED"
+        bool is_shared "copied from the first request's allow_pool"
+        int capacity "snapshotted from the vehicle at creation"
+        int seats_taken "CHECK 0 <= seats_taken <= capacity"
+        timestamptz arrived_at "nullable"
+        timestamptz started_at "nullable"
+        timestamptz completed_at "nullable"
+        timestamptz cancelled_at "nullable"
+        timestamptz created_at
+    }
+
+    RIDE_REQUESTS {
+        uuid id PK
+        uuid passenger_id FK
+        uuid pool_id FK "nullable, at most one pool at a time"
+        uuid pickup_zone_id FK
+        uuid dest_zone_id FK
+        int seats "1..vehicle capacity"
+        bool allow_pool
+        request_status status "REQUESTED..COMPLETED/CANCELLED/EXPIRED"
+        int base_fare "paisa, e.g. 3000"
+        int distance_charge "paisa"
+        int pool_discount "paisa, 20% if pooled"
+        int final_fare "paisa, locked when the pool starts"
+        int est_solo_fare "paisa, shown at request time"
+        int est_pooled_fare "paisa, shown at request time"
+        payment_method payment_method "CASH only in the MVP"
+        cancel_reason cancel_reason "nullable"
+        uuid cancelled_by "nullable, actor user id"
+        timestamptz created_at
+    }
+
+    RIDE_EVENTS {
+        uuid id PK
+        uuid ride_request_id FK "nullable, request-level event"
+        uuid pool_id FK "nullable, pool-level event"
+        text from_status "e.g. MATCHED"
+        text to_status "e.g. DRIVER_ARRIVED"
+        uuid actor_user_id FK "who caused the transition"
+        text reason "nullable, e.g. NO_SHOW"
+        timestamptz created_at
+    }
+```
+
 ## Enums
 | Enum | Values |
 |---|---|
