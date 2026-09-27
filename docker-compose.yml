@@ -1,8 +1,7 @@
-# Phase 3: postgres only, so the api can be developed against a real database
-# with `npm run dev` on the host. Phase 12 adds the `api` and `web` services.
 services:
   db:
     image: postgres:16-alpine
+    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tesla}
