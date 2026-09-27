@@ -1,0 +1,14 @@
+// Not used yet. Prisma refuses to `generate`/`migrate` a schema with zero
+// models, so Phase 3's health check talks to Postgres via `pg` directly
+// (see src/lib/db.js). Phase 4 adds the real models (users, vehicles, zones,
+// pools, ride_requests, ride_events) and hand-added CHECK constraints /
+// partial unique indexes — see docs/erd.md — and wires up @prisma/client.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
