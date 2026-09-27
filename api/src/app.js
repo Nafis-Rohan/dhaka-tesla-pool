@@ -2,6 +2,10 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { corsAllowlist } from "./lib/env.js";
+import { requestId } from "./middleware/requestId.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import { notFound } from "./middleware/notFound.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 import { router } from "./routes/index.js";
 
 export function createApp() {
@@ -20,15 +24,13 @@ export function createApp() {
     })
   );
   app.use(express.json({ limit: "100kb" }));
+  app.use(requestId);
+  app.use(requestLogger);
 
   app.use(router);
 
-  // TODO(next commit): centralized AppError-aware error middleware + request logging
-  // eslint-disable-next-line no-unused-vars
-  app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Something went wrong", details: {} } });
-  });
+  app.use(notFound);
+  app.use(errorHandler);
 
   return app;
 }
