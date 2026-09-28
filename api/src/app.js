@@ -5,6 +5,8 @@ import { env } from './lib/env.js';
 import { pool } from './lib/db.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { authLimiter } from './middleware/rateLimit.js';
+import { authRoutes, meRoutes } from './modules/auth/auth.routes.js';
 
 export const app = express();
 
@@ -22,5 +24,8 @@ app.get('/health', async (req, res) => {
     res.status(503).json({ status: 'error', db: 'unreachable' });
   }
 });
+
+app.use('/auth', authLimiter, authRoutes);
+app.use('/me', meRoutes);
 
 app.use(errorHandler);
