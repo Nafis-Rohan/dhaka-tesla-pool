@@ -1,7 +1,8 @@
 import { AppError } from '../../lib/AppError.js';
 import { estimate } from '../../domain/fare.js';
 import { assertRequestTransition } from '../../domain/transitions.js';
-import { getDistanceM } from '../zones/zones.service.js';
+import { getDistanceM, getAdjacency } from '../zones/zones.service.js';
+import * as poolsService from '../pools/pools.service.js';
 import * as ridesRepository from './rides.repository.js';
 
 
@@ -69,6 +70,7 @@ export async function createRide(passengerId, { pickupZoneId, destZoneId, seats,
   // Reference data that never changes mid-request, so it stays outside the transaction
   const distanceM = await getDistanceM(pickupZoneId, destZoneId);
   const fare = estimate({ distanceM, seats });
+  const adjacency = allowPool ? await getAdjacency() : null; // only needed when we try to join a pool
 
   try {
     return await ridesRepository.inTransaction(async (tx) => {
@@ -97,7 +99,13 @@ export async function createRide(passengerId, { pickupZoneId, destZoneId, seats,
         actorUserId: passengerId,
       });
 
-      return toPassengerView(request, 0);
+      // Join an open Bullet if the matching rule allows it; otherwise the ride stays REQUESTED
+      await poolsService.tryAutoJoin(tx, request, adjacency);
+
+      // Read it back: joining changed its status and pool, and the response shows "sharing with N others"
+      const saved = await ridesRepository.findByIdForPassenger(tx, request.id, passengerId);
+      const [view] = await toPassengerViews(tx, [saved]);
+      return view;
     });
   } catch (err) {
     // The partial unique index one_active_request_per_passenger is the real guard: it also stops
@@ -134,5 +142,53 @@ export function getRide(passengerId, rideId) {
 
     const [view] = await toPassengerViews(tx, [ride]);
     return view;
+  });
+}
+
+function rideChanged() {
+  return new AppError('RIDE_CHANGED', 409, 'This ride was just updated, please refresh and try again');
+}
+
+// Passenger cancels their own ride (rules.md B7). Allowed from REQUESTED, MATCHED and DRIVER_ARRIVED;
+// from STARTED on, the transition table refuses it with 409 INVALID_TRANSITION.
+export function cancelRide(passengerId, rideId) {
+  return ridesRepository.inTransaction(async (tx) => {
+    // 1. Look at the ride (only yours: someone else's is 404) to learn which pool it is in
+    const first = await ridesRepository.findByIdForPassenger(tx, rideId, passengerId);
+    if (!first) throw new AppError('RIDE_NOT_FOUND', 404, 'Ride not found');
+
+    // 2. Lock the pool BEFORE touching the request (lock order: pool, then request)
+    const pool = first.poolId ? await poolsService.lockPool(tx, first.poolId) : null;
+
+    // 3. Read again under the lock: the driver may have acted while we waited for it
+    const ride = await ridesRepository.findByIdForPassenger(tx, rideId, passengerId);
+    if (!ride || ride.poolId !== first.poolId) throw rideChanged();
+
+    // 4. Is cancelling allowed from this status?
+    assertRequestTransition(ride.status, 'CANCELLED');
+
+    // 5. Cancel, but only if the status is still what we just read
+    const cancelled = await ridesRepository.cancelRequest(tx, {
+      id: ride.id,
+      fromStatus: ride.status,
+      cancelledBy: passengerId,
+      reason: 'PASSENGER',
+    });
+    if (!cancelled) throw rideChanged();
+
+    await ridesRepository.createEvent(tx, {
+      rideRequestId: ride.id,
+      poolId: ride.poolId,
+      fromStatus: ride.status,
+      toStatus: 'CANCELLED',
+      actorUserId: passengerId,
+      reason: 'PASSENGER',
+    });
+
+    // 6. Free the seats (and cancel the pool if this was its last passenger)
+    if (pool) await poolsService.removeMember(tx, pool, ride.seats, passengerId);
+
+    const updated = await ridesRepository.findByIdForPassenger(tx, rideId, passengerId);
+    return toPassengerView(updated, 0);
   });
 }

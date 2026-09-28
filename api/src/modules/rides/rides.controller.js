@@ -16,3 +16,8 @@ export async function get(req, res) {
   const ride = await ridesService.getRide(req.user.id, req.valid.params.id);
   res.json({ ride });
 }
+
+export async function cancel(req, res) {
+  const ride = await ridesService.cancelRide(req.user.id, req.valid.params.id);
+  res.json({ ride });
+}

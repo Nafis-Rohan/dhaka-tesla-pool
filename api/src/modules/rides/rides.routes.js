@@ -13,3 +13,5 @@ ridesRoutes.use(requireAuth, requireRole('PASSENGER'));
 ridesRoutes.post('/', validate(createRideSchema), ridesController.create);
 ridesRoutes.get('/', validate(listRidesQuerySchema, 'query'), ridesController.list);
 ridesRoutes.get('/:id', validate(rideIdParamsSchema, 'params'), ridesController.get);
+// An action endpoint, not PATCH status: cancelling has its own rules and side effects (rules.md B10)
+ridesRoutes.post('/:id/cancel', validate(rideIdParamsSchema, 'params'), ridesController.cancel);

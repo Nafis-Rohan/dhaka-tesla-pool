@@ -54,6 +54,14 @@ const ZONES = [
   { name: 'Banani', lat: 23.7937, lng: 90.4066 },
   { name: 'Gulshan 1', lat: 23.7806, lng: 90.4162 },
   { name: 'Mohakhali', lat: 23.778, lng: 90.4055 },
+  { name: 'Uttara', lat: 23.8759, lng: 90.3795 }, // far from everything the story uses: never a match
+];
+
+// Neighbouring zones (same as the seed). Uttara has none of these, which is what makes it "not compatible".
+const ADJACENT = [
+  ['Banani', 'Gulshan 1'],
+  ['Banani', 'Mohakhali'],
+  ['Gulshan 1', 'Mohakhali'],
 ];
 
 // Same distances as the seed (rules.md B2)
@@ -61,6 +69,7 @@ const DISTANCES_M = [
   ['Banani', 'Mohakhali', 2500],
   ['Banani', 'Gulshan 1', 3000],
   ['Gulshan 1', 'Mohakhali', 2800],
+  ['Banani', 'Uttara', 11000],
 ];
 
 // Zones are reference data (like in the seed), so this is an upsert and they are left in place:
@@ -81,6 +90,15 @@ export async function seedZones() {
       where: { zoneAId_zoneBId: { zoneAId, zoneBId } },
       update: { distanceM },
       create: { zoneAId, zoneBId, distanceM },
+    });
+  }
+
+  for (const [nameA, nameB] of ADJACENT) {
+    const [zoneAId, zoneBId] = ids[nameA] < ids[nameB] ? [ids[nameA], ids[nameB]] : [ids[nameB], ids[nameA]];
+    await prisma.zoneAdjacency.upsert({
+      where: { zoneAId_zoneBId: { zoneAId, zoneBId } },
+      update: {},
+      create: { zoneAId, zoneBId },
     });
   }
 
