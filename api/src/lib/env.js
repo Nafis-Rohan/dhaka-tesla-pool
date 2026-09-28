@@ -17,4 +17,11 @@ export const env = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
 };
+
+// Fail fast: signing tokens with an undefined secret would throw on the first login instead of at boot.
+if (!env.jwtSecret) {
+  throw new Error('JWT_SECRET is not set. Copy .env.example to .env and set it.');
+}
