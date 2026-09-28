@@ -40,7 +40,7 @@ erDiagram
         uuid driver_id FK,UK "one vehicle per driver"
         text name "e.g. Bullet"
         text plate
-        int capacity "1-6, e.g. 3 for Bullet"
+        int capacity "1-3, e.g. 3 for Bullet"
         bool is_online
         uuid current_zone_id FK "nullable, set when driver goes online"
     }
@@ -93,9 +93,10 @@ erDiagram
         int final_fare "paisa, locked when the pool starts"
         int est_solo_fare "paisa, shown at request time"
         int est_pooled_fare "paisa, shown at request time"
-        payment_method payment_method "CASH only in the MVP"
+        payment_method payment_method "nullable, CASH only in the MVP, set at completion"
         cancel_reason cancel_reason "nullable"
         uuid cancelled_by "nullable, actor user id"
+        timestamptz requested_at "resets on re-queue, drives the 10 minute expiry"
         timestamptz created_at
     }
 
@@ -125,6 +126,10 @@ erDiagram
 -- capacity can never be exceeded, even by buggy code
 ALTER TABLE pools ADD CONSTRAINT pools_seats_within_capacity
   CHECK (seats_taken >= 0 AND seats_taken <= capacity);
+
+-- a Tesla has between 1 and 3 seats (assumption: Bullet has 3, so 3 is the max)
+ALTER TABLE vehicles ADD CONSTRAINT vehicles_capacity_range
+  CHECK (capacity BETWEEN 1 AND 3);
 
 -- one active ride per passenger (also blocks double-submit)
 CREATE UNIQUE INDEX one_active_request_per_passenger

@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  
+  @@map("user_role") 
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  phone        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  vehicle      Vehicle?
+  rideRequests RideRequest[]
+  rideEvents   RideEvent[]
+
+  @@map("users")
+}
+
+model Zone {
+  id   String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String  @unique
+  lat  Decimal @db.Decimal(9, 6)
+  lng  Decimal @db.Decimal(9, 6)
+
+  adjacencyAsA ZoneAdjacency[] @relation("AdjacencyZoneA")
+  adjacencyAsB ZoneAdjacency[] @relation("AdjacencyZoneB")
+  distanceAsA  ZoneDistance[]  @relation("DistanceZoneA")
+  distanceAsB  ZoneDistance[]  @relation("DistanceZoneB")
+
+  vehicles       Vehicle[]
+  pools          Pool[]
+  pickupRequests RideRequest[] @relation("RequestPickupZone")
+  destRequests   RideRequest[] @relation("RequestDestZone")
+
+  @@map("zones")
+}
+
+// Each pair is stored once with zone_a_id < zone_b_id (CHECK added by hand in the migration SQL)
+model ZoneAdjacency {
+  zoneAId String @map("zone_a_id") @db.Uuid
+  zoneBId String @map("zone_b_id") @db.Uuid
+
+  zoneA Zone @relation("AdjacencyZoneA", fields: [zoneAId], references: [id])
+  zoneB Zone @relation("AdjacencyZoneB", fields: [zoneBId], references: [id])
+
+  @@id([zoneAId, zoneBId])
+  @@map("zone_adjacency")
+}
+
+model ZoneDistance {
+  zoneAId   String @map("zone_a_id") @db.Uuid
+  zoneBId   String @map("zone_b_id") @db.Uuid
+  distanceM Int    @map("distance_m")
+
+  zoneA Zone @relation("DistanceZoneA", fields: [zoneAId], references: [id])
+  zoneB Zone @relation("DistanceZoneB", fields: [zoneBId], references: [id])
+
+  @@id([zoneAId, zoneBId])
+  @@map("zone_distances")
+}
+
+// capacity 1-3 CHECK is added by hand in the migration SQL
+model Vehicle {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId      String  @unique @map("driver_id") @db.Uuid
+  name          String
+  plate         String
+  capacity      Int
+  isOnline      Boolean @default(false) @map("is_online")
+  currentZoneId String? @map("current_zone_id") @db.Uuid
+
+  driver      User   @relation(fields: [driverId], references: [id])
+  currentZone Zone?  @relation(fields: [currentZoneId], references: [id])
+  pools       Pool[]
+
+  @@map("vehicles")
+}
+
+enum PoolStatus {
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+
+  @@map("pool_status")
+}
+
+// seats_taken CHECK and one-active-pool-per-vehicle partial index are added by hand in the migration SQL
+model Pool {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehicleId    String     @map("vehicle_id") @db.Uuid
+  pickupZoneId String     @map("pickup_zone_id") @db.Uuid
+  status       PoolStatus
+  isShared     Boolean    @map("is_shared")
+  capacity     Int
+  seatsTaken   Int        @default(0) @map("seats_taken")
+  arrivedAt    DateTime?  @map("arrived_at") @db.Timestamptz(6)
+  startedAt    DateTime?  @map("started_at") @db.Timestamptz(6)
+  completedAt  DateTime?  @map("completed_at") @db.Timestamptz(6)
+  cancelledAt  DateTime?  @map("cancelled_at") @db.Timestamptz(6)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id])
+  pickupZone Zone    @relation(fields: [pickupZoneId], references: [id])
+  requests   RideRequest[]
+  events     RideEvent[]
+
+  @@index([status, pickupZoneId])
+  @@map("pools")
+}
+
+enum RequestStatus {
+  REQUESTED
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+
+  @@map("request_status")
+}
+
+enum PaymentMethod {
+  CASH
+
+  @@map("payment_method")
+}
+
+enum CancelReason {
+  PASSENGER
+  NO_SHOW
+
+  @@map("cancel_reason")
+}
+
+// Money is stored in integer paisa.
+// CHECKs (seats >= 1, pickup <> dest, fares >= 0) and the one-active-request-per-passenger
+// partial unique index are added by hand in the migration SQL
+model RideRequest {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  passengerId   String         @map("passenger_id") @db.Uuid
+  poolId        String?        @map("pool_id") @db.Uuid
+  pickupZoneId  String         @map("pickup_zone_id") @db.Uuid
+  destZoneId    String         @map("dest_zone_id") @db.Uuid
+  seats         Int
+  allowPool     Boolean        @map("allow_pool")
+  status        RequestStatus  @default(REQUESTED)
+  baseFare      Int            @map("base_fare")
+  distanceCharge Int           @map("distance_charge")
+  poolDiscount  Int?           @map("pool_discount")
+  finalFare     Int?           @map("final_fare")
+  estSoloFare   Int            @map("est_solo_fare")
+  estPooledFare Int            @map("est_pooled_fare")
+  paymentMethod PaymentMethod? @map("payment_method")
+  cancelReason  CancelReason?  @map("cancel_reason")
+  cancelledBy   String?        @map("cancelled_by") @db.Uuid
+  requestedAt   DateTime       @default(now()) @map("requested_at") @db.Timestamptz(6)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  passenger  User        @relation(fields: [passengerId], references: [id])
+  pool       Pool?       @relation(fields: [poolId], references: [id])
+  pickupZone Zone        @relation("RequestPickupZone", fields: [pickupZoneId], references: [id])
+  destZone   Zone        @relation("RequestDestZone", fields: [destZoneId], references: [id])
+  events     RideEvent[]
+
+  @@index([status, pickupZoneId])
+  @@index([poolId])
+  @@index([passengerId, createdAt(sort: Desc)])
+  @@map("ride_requests")
+}
+
+// Append-only audit trail: rows are only ever inserted, never updated or deleted
+model RideEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rideRequestId String?  @map("ride_request_id") @db.Uuid
+  poolId        String?  @map("pool_id") @db.Uuid
+  fromStatus    String   @map("from_status")
+  toStatus      String   @map("to_status")
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  reason        String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rideRequest RideRequest? @relation(fields: [rideRequestId], references: [id])
+  pool        Pool?        @relation(fields: [poolId], references: [id])
+  actorUser   User?        @relation(fields: [actorUserId], references: [id])
+
+  @@index([rideRequestId])
+  @@index([poolId])
+  @@map("ride_events")
+}
