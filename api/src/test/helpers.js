@@ -23,7 +23,17 @@ export function assertTestDatabase() {
   }
 }
 
-export function removeCast() {
+// Events, requests, pools and vehicles all point at users, so they go first (test database only)
+export async function resetRides() {
+  assertTestDatabase();
+  await prisma.rideEvent.deleteMany();
+  await prisma.rideRequest.deleteMany();
+  await prisma.pool.deleteMany();
+  await prisma.vehicle.deleteMany();
+}
+
+export async function removeCast() {
+  await resetRides();
   return prisma.user.deleteMany({ where: { phone: { in: CAST_PHONES } } });
 }
 
@@ -83,4 +93,41 @@ export async function loginToken(person) {
     .post('/auth/login')
     .send({ phone: person.phone, password: PASSWORD });
   return res.body.token;
+}
+
+// --- Direct-to-database fixtures -------------------------------------------------------------
+// No pool can exist through the API until drivers can accept rides, so tests insert them directly.
+
+// Jashim's three-seat Bullet
+export function createBullet(driverId) {
+  return prisma.vehicle.create({
+    data: { driverId, name: 'Bullet', plate: 'DHAKA-TESLA-3', capacity: 3 },
+  });
+}
+
+// One vehicle trip. seatsTaken must match the seats of the requests you put in it.
+export function createPool({ vehicleId, pickupZoneId, seatsTaken = 0, status = 'MATCHED', isShared = true, capacity = 3 }) {
+  return prisma.pool.create({
+    data: { vehicleId, pickupZoneId, seatsTaken, status, isShared, capacity },
+  });
+}
+
+// One passenger's request in any state. Fares default to Nusrat's (Banani -> Mohakhali, 1 seat).
+// Overrides can set poolId, status, seats, requestedAt, createdAt ...
+export function insertRide({ passengerId, pickupZoneId, destZoneId, ...overrides }) {
+  return prisma.rideRequest.create({
+    data: {
+      passengerId,
+      pickupZoneId,
+      destZoneId,
+      seats: 1,
+      allowPool: true,
+      status: 'REQUESTED',
+      baseFare: 3000,
+      distanceCharge: 5000,
+      estSoloFare: 8000,
+      estPooledFare: 6400,
+      ...overrides,
+    },
+  });
 }
