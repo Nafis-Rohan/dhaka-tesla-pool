@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Bangladeshi mobile: 01 + operator digit 3-9 + 8 more digits (rules.md B9)
 const phone = z
   .string()
   .trim()
@@ -16,6 +15,7 @@ export const registerSchema = z.object({
     .max(72, 'Password must be at most 72 characters'),
 });
 
+// z.object means = I expect an object, and here are the rules for its fields
 export const loginSchema = z.object({
   phone,
   password: z.string().min(1, 'Password is required'),
