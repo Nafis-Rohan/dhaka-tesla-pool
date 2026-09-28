@@ -4,6 +4,11 @@ export function listZones() {
   return prisma.zone.findMany({ orderBy: { name: 'asc' } });
 }
 
+// Neighbouring zone pairs, each stored once (smaller id first)
+export function listAdjacencyPairs() {
+  return prisma.zoneAdjacency.findMany();
+}
+
 // zone_distances stores each pair once, smaller id first, so put the ids in that order before looking up
 export function findDistance(zoneIdA, zoneIdB) {
   const [zoneAId, zoneBId] = zoneIdA < zoneIdB ? [zoneIdA, zoneIdB] : [zoneIdB, zoneIdA];

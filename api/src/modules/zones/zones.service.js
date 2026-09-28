@@ -1,4 +1,5 @@
 import { AppError } from '../../lib/AppError.js';
+import { buildAdjacency } from '../../domain/matching.js';
 import * as zonesRepository from './zones.repository.js';
 
 // lat/lng are Decimals in the database; the client gets plain numbers (display only, never used for maths)
@@ -10,6 +11,13 @@ export async function listZones() {
     lat: Number(zone.lat),
     lng: Number(zone.lng),
   }));
+}
+
+// The neighbour lookup that canJoin() needs, built from the seeded zone_adjacency table.
+// Reference data that never changes mid-request, so callers load it outside their transaction.
+export async function getAdjacency() {
+  const rows = await zonesRepository.listAdjacencyPairs();
+  return buildAdjacency(rows.map((row) => [row.zoneAId, row.zoneBId]));
 }
 
 // Distance in metres between two zones, from the seeded table (used for fares).

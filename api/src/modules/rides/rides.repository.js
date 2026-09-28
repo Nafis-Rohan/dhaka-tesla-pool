@@ -72,6 +72,16 @@ export async function countMembersByPool(db, poolIds) {
   return new Map(rows.map((row) => [row.poolId, row._count._all]));
 }
 
+// REQUESTED -> MATCHED and pool membership in one conditional update. Returns false if the
+// request is no longer REQUESTED (e.g. someone else already matched or cancelled it).
+export async function attachToPool(db, { id, poolId }) {
+  const { count } = await db.rideRequest.updateMany({
+    where: { id, status: 'REQUESTED' },
+    data: { status: 'MATCHED', poolId },
+  });
+  return count === 1;
+}
+
 // Cancels only if the ride is STILL in the status the caller just read. If it changed in the
 // meantime (e.g. a driver matched it), nothing is updated and we return false so the caller can 409.
 // pool_id is cleared: pool membership is ride_requests.pool_id, so a cancelled request leaves the
