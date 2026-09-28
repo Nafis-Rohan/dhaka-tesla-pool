@@ -11,3 +11,9 @@ export async function login(req, res) {
   const result = await authService.login(req.body);
   res.json(result);
 }
+
+// req.user was set by requireAuth from the verified token
+export async function me(req, res) {
+  const user = await authService.getMe(req.user.id);
+  res.json({ user });
+}

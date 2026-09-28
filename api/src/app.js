@@ -6,7 +6,7 @@ import { pool } from './lib/db.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter } from './middleware/rateLimit.js';
-import { authRoutes } from './modules/auth/auth.routes.js';
+import { authRoutes, meRoutes } from './modules/auth/auth.routes.js';
 
 export const app = express();
 
@@ -26,5 +26,6 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/auth', authLimiter, authRoutes);
+app.use('/me', meRoutes);
 
 app.use(errorHandler);

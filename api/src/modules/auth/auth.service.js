@@ -50,3 +50,12 @@ export async function login({ phone, password }) {
 
   return { user: toPublicUser(user), token: signToken(user) };
 }
+
+export async function getMe(userId) {
+  const user = await authRepository.findById(userId);
+
+  // A valid token for a user that no longer exists (e.g. deleted after the token was issued)
+  if (!user) throw new AppError('UNAUTHENTICATED', 401, 'Account no longer exists');
+
+  return toPublicUser(user);
+}
