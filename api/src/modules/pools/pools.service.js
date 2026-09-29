@@ -258,6 +258,11 @@ export function dropOff(driverId, requestId) {
         toStatus: 'COMPLETED',
         actorUserId: driverId,
       });
+
+      // The trip just ended here, with this passenger: while STARTED, the zone can't affect
+      // matching anyway (a sealed pool takes no new members), so updating it once now - rather
+      // than after every drop-off - gives the same result with one write instead of several.
+      await driverRepository.updateVehicleZoneByDriver(tx, driverId, request.destZoneId);
     }
 
     return getPoolView(tx, pool.id);
