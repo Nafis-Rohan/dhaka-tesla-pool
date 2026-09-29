@@ -1,24 +1,62 @@
-import { Route, Routes } from 'react-router-dom'
+import { Link, Outlet, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 import { RequireAuth } from './auth/RequireAuth'
+import { Loading } from './components/Loading'
+import { useActiveRide } from './hooks/useActiveRide'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { CurrentRideCard } from './pages/passenger/CurrentRideCard'
+import { RequestRidePage } from './pages/passenger/RequestRidePage'
+import { RideHistoryPage } from './pages/passenger/RideHistoryPage'
+
+function PassengerHome() {
+  const { data: activeRide, isPending } = useActiveRide()
+
+  if (isPending) return <Loading />
+  return activeRide ? <CurrentRideCard ride={activeRide} /> : <RequestRidePage />
+}
 
 function HomePage() {
+  const { user } = useAuth()
+  return user.role === 'PASSENGER' ? (
+    <PassengerHome />
+  ) : (
+    <div className="flex flex-1 items-center justify-center text-gray-500">
+      Driver UI coming in Phase 11
+    </div>
+  )
+}
+
+// Temporary shell for Phase 10: a logout bar + nav above whichever page fits the role.
+// Replaced by real passenger/driver layouts once both flows exist.
+function AppLayout() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-2xl font-semibold text-gray-900">
-        Welcome, {user.name}
-      </h1>
-      <button
-        type="button"
-        onClick={logout}
-        className="rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
-      >
-        Log out
-      </button>
+    <div className="flex min-h-screen flex-col">
+      <header className="flex items-center justify-between border-b border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500">Hi, {user.name}</span>
+          {user.role === 'PASSENGER' && (
+            <nav className="flex gap-3 text-sm text-gray-700">
+              <Link to="/" className="hover:underline">
+                Home
+              </Link>
+              <Link to="/history" className="hover:underline">
+                History
+              </Link>
+            </nav>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={logout}
+          className="rounded bg-gray-900 px-3 py-1 text-sm text-white hover:bg-gray-700"
+        >
+          Log out
+        </button>
+      </header>
+      <Outlet />
     </div>
   )
 }
@@ -29,7 +67,10 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route element={<RequireAuth />}>
-        <Route path="/" element={<HomePage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/history" element={<RideHistoryPage />} />
+        </Route>
       </Route>
     </Routes>
   )
