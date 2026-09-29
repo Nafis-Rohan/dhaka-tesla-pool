@@ -1,10 +1,13 @@
 import { AppError } from '../lib/AppError.js';
 
 // Usage: router.post('/register', validate(registerSchema), controller.register)
-// On success req.body is replaced with the parsed data, so unknown fields (e.g. "role") are stripped.
-export function validate(schema) {
+//        router.get('/:id', validate(idSchema, 'params'), controller.get)
+// `source` is 'body' (default), 'query' or 'params'.
+// Body: req.body is replaced with the parsed data, so unknown fields (e.g. "role") are stripped.
+// Query/params: Express 5 makes req.query read-only, so parsed values go to req.valid.query / req.valid.params.
+export function validate(schema, source = 'body') {
   return (req, res, next) => {
-    const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req[source]);
     if (!result.success) {
       const fields = {};
       for (const issue of result.error.issues) {
@@ -13,7 +16,8 @@ export function validate(schema) {
       }
       throw new AppError('VALIDATION_ERROR', 400, 'Invalid request data', { fields });
     }
-    req.body = result.data;
+    if (source === 'body') req.body = result.data;
+    else req.valid = { ...req.valid, [source]: result.data };
     next();
   };
 }

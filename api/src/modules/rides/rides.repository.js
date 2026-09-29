@@ -72,6 +72,42 @@ export async function countMembersByPool(db, poolIds) {
   return new Map(rows.map((row) => [row.poolId, row._count._all]));
 }
 
+// Any request by id, for a driver looking at a waiting ride. Passenger screens use
+// findByIdForPassenger instead, which only ever returns the passenger's own ride.
+export function findById(db, id) {
+  return db.rideRequest.findUnique({ where: { id }, include: withZones });
+}
+
+// A request that is in THIS pool. A request from someone else's pool is simply "not found".
+export function findInPool(db, id, poolId) {
+  return db.rideRequest.findFirst({ where: { id, poolId }, include: withZones });
+}
+
+// Everyone in a pool with the passenger's name, for the driver's screens
+export function listInPool(db, poolId) {
+  return db.rideRequest.findMany({
+    where: { poolId },
+    include: { ...withZones, passenger: { select: { id: true, name: true } } },
+    orderBy: [{ requestedAt: 'asc' }, { id: 'asc' }],
+  });
+}
+
+export function countInPool(db, poolId, status) {
+  return db.rideRequest.count({ where: { poolId, status } });
+}
+
+export function updateRequest(db, id, data) {
+  return db.rideRequest.update({ where: { id }, data });
+}
+
+// Moves every request in the pool that is in one of `fromStatuses` in a single statement
+export function updateManyInPool(db, poolId, fromStatuses, data) {
+  return db.rideRequest.updateMany({
+    where: { poolId, status: { in: fromStatuses } },
+    data,
+  });
+}
+
 // REQUESTED -> MATCHED and pool membership in one conditional update. Returns false if the
 // request is no longer REQUESTED (e.g. someone else already matched or cancelled it).
 export async function attachToPool(db, { id, poolId }) {

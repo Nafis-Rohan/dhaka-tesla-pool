@@ -10,6 +10,16 @@ function assertPositiveInteger(value, name) {
 }
 
 
+// The pool discount rule, applied to the solo parts of a fare (base + distance).
+// Used by calculateFare below AND when a trip starts, where the parts stored on the request are
+// enough: no distance lookup is needed to lock the final fare.
+export function settleFare({ baseFare, distanceCharge }, pooled) {
+  const subtotal = baseFare + distanceCharge;
+  const poolDiscount = pooled ? Math.floor((subtotal * POOL_DISCOUNT_PERCENT) / 100) : 0;
+
+  return { poolDiscount, finalFare: subtotal - poolDiscount };
+}
+
 export function calculateFare({ distanceM, seats, pooled }) {
   assertPositiveInteger(distanceM, 'distanceM');
   assertPositiveInteger(seats, 'seats');
@@ -17,10 +27,8 @@ export function calculateFare({ distanceM, seats, pooled }) {
   const distanceUnits = Math.ceil(distanceM / 100); // a started 100 m block counts as a full one
   const baseFare = BASE_FARE * seats;
   const distanceCharge = distanceUnits * RATE_PER_100M * seats;
-  const subtotal = baseFare + distanceCharge;
-  const poolDiscount = pooled ? Math.floor((subtotal * POOL_DISCOUNT_PERCENT) / 100) : 0;
 
-  return { baseFare, distanceCharge, poolDiscount, finalFare: subtotal - poolDiscount };
+  return { baseFare, distanceCharge, ...settleFare({ baseFare, distanceCharge }, pooled) };
 }
 
 // Shown at request time: we can't know yet whether anyone will join, so show both prices.

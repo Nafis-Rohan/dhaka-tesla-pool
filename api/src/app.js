@@ -10,6 +10,8 @@ import { authRoutes, meRoutes } from './modules/auth/auth.routes.js';
 import { zonesRoutes } from './modules/zones/zones.routes.js';
 import { faresRoutes } from './modules/fares/fares.routes.js';
 import { ridesRoutes } from './modules/rides/rides.routes.js';
+import { driverRoutes } from './modules/driver/driver.routes.js';
+import { poolRoutes } from './modules/pools/pools.routes.js';
 
 export const app = express();
 
@@ -33,5 +35,7 @@ app.use('/me', meRoutes);
 app.use('/zones', zonesRoutes);
 app.use('/fares', faresRoutes);
 app.use('/rides', ridesRoutes);
+app.use('/driver/pool', poolRoutes); // before /driver, so the more specific path is matched first
+app.use('/driver', driverRoutes);
 
 app.use(errorHandler);
