@@ -12,6 +12,7 @@
     { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
     { "key": "token", "value": "", "type": "string" },
     { "key": "rideId", "value": "", "type": "string" },
+    { "key": "poolId", "value": "", "type": "string" },
     { "key": "zone_Banani", "value": "", "type": "string" },
     { "key": "zone_Gulshan_1", "value": "", "type": "string" },
     { "key": "zone_Gulshan_2", "value": "", "type": "string" },
@@ -429,6 +430,308 @@
       ]
     },
     {
+      "name": "Driver",
+      "item": [
+        {
+          "name": "Go online (Banani)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"online\": true,\n  \"zoneId\": \"{{zone_Banani}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/driver/availability", "host": ["{{baseUrl}}"], "path": ["driver", "availability"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Log in as Jashim first (Auth folder)",
+                  "pm.test('200 and online in Banani', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().availability.isOnline).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go offline",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"online\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/driver/availability", "host": ["{{baseUrl}}"], "path": ["driver", "availability"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 200 if you have no active trip, 409 ACTIVE_POOL_EXISTS if you do",
+                  "pm.test('200 (offline) or 409 (finish your trip first)', () => {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "My availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/availability", "host": ["{{baseUrl}}"], "path": ["driver", "availability"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 with the vehicle and online status', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().availability).to.have.property('isOnline');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Requests feed (waiting rides in my zone)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/requests", "host": ["{{baseUrl}}"], "path": ["driver", "requests"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 409 DRIVER_OFFLINE if you have not gone online yet",
+                  "pm.test('200 (feed) or 409 (go online first)', () => {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200 && pm.response.json().requests.length) {",
+                  "  pm.collectionVariables.set('rideId', pm.response.json().requests[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept a ride (uses the saved rideId)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/driver/requests/{{rideId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["driver", "requests", "{{rideId}}", "accept"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 200 the ride is now your trip. 409 if someone got there first, or it is not in your zone.",
+                  "pm.test('200 (accepted) or 409 (no longer available)', () => {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('poolId', pm.response.json().pool.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "My trip history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/history", "host": ["{{baseUrl}}"], "path": ["driver", "history"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 and a list of finished trips', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().pools).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Trip (driver runs their current pool)",
+      "item": [
+        {
+          "name": "Current trip",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/pool/current", "host": ["{{baseUrl}}"], "path": ["driver", "pool", "current"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// pool is null when you have no active trip: an empty state, not an error",
+                  "pm.test('200, pool or null', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('pool');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Arrive at pickup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/pool/arrive", "host": ["{{baseUrl}}"], "path": ["driver", "pool", "arrive"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 and status DRIVER_ARRIVED, or 409/404 if there is no open trip', () => {",
+                  "  pm.expect([200, 404, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 200) pm.expect(pm.response.json().pool.status).to.eql('DRIVER_ARRIVED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start trip (locks the final fares)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/pool/start", "host": ["{{baseUrl}}"], "path": ["driver", "pool", "start"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 and status STARTED, or 409/404 if arrive has not happened yet', () => {",
+                  "  pm.expect([200, 404, 409]).to.include(pm.response.code);",
+                  "  if (pm.response.code === 200) pm.expect(pm.response.json().pool.status).to.eql('STARTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Drop off a passenger (uses the saved rideId)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/driver/pool/requests/{{rideId}}/dropoff",
+              "host": ["{{baseUrl}}"],
+              "path": ["driver", "pool", "requests", "{{rideId}}", "dropoff"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 409 if the trip has not STARTED yet, or this passenger was already dropped off",
+                  "pm.test('200 (dropped off) or 409/404', () => {",
+                  "  pm.expect([200, 404, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark a passenger as no-show (uses the saved rideId)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/driver/pool/requests/{{rideId}}/no-show",
+              "host": ["{{baseUrl}}"],
+              "path": ["driver", "pool", "requests", "{{rideId}}", "no-show"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Only valid after 'Arrive at pickup' and before 'Start trip'",
+                  "pm.test('200 (marked) or 409/404', () => {",
+                  "  pm.expect([200, 404, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel trip (before start; passengers go back to waiting)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/pool/cancel", "host": ["{{baseUrl}}"], "path": ["driver", "pool", "cancel"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 409 INVALID_TRANSITION once the trip has STARTED",
+                  "pm.test('200 (cancelled) or 409 (already started)', () => {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Failure cases (each should be rejected)",
       "item": [
         {
@@ -558,6 +861,55 @@
                 "exec": [
                   "pm.test('400 VALIDATION_ERROR (log in as a passenger first)', () => {",
                   "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go online without a zone (expect 400)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"online\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/driver/availability", "host": ["{{baseUrl}}"], "path": ["driver", "availability"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 VALIDATION_ERROR on zoneId (log in as a driver first)', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().error.details.fields).to.have.property('zoneId');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Passenger tries the driver feed (expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/driver/requests", "host": ["{{baseUrl}}"], "path": ["driver", "requests"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 FORBIDDEN (log in as a passenger first)', () => {",
+                  "  pm.response.to.have.status(403);",
+                  "  pm.expect(pm.response.json().error.code).to.eql('FORBIDDEN');",
                   "});"
                 ]
               }
