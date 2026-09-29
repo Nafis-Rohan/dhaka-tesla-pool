@@ -42,3 +42,8 @@ export function updateAvailability(db, vehicleId, { isOnline, currentZoneId }) {
     include: { currentZone: true },
   });
 }
+
+// The vehicle is physically at this zone now: the driver just dropped someone off here.
+export function updateVehicleZoneByDriver(db, driverId, zoneId) {
+  return db.vehicle.update({ where: { driverId }, data: { currentZoneId: zoneId } });
+}
