@@ -1,4 +1,41 @@
+import { prisma } from '../../lib/prisma.js';
+
 // Every function takes `db`: the normal client or the `tx` of a running transaction.
+export function inTransaction(work) {
+  return prisma.$transaction(work);
+}
+
+// A vehicle has at most one of these (the one_active_pool_per_vehicle index)
+export function findActivePoolByVehicle(db, vehicleId) {
+  return db.pool.findFirst({
+    where: { vehicleId, status: { in: ['MATCHED', 'DRIVER_ARRIVED', 'STARTED'] } },
+  });
+}
+
+export function findPoolWithZone(db, id) {
+  return db.pool.findUnique({ where: { id }, include: { pickupZone: true } });
+}
+
+export function createPool(db, data) {
+  return db.pool.create({ data });
+}
+
+export function updatePool(db, id, data) {
+  return db.pool.update({ where: { id }, data });
+}
+
+// The driver's finished trips (newest first) with who rode in them
+export function listFinishedPoolsByVehicle(db, vehicleId, take) {
+  return db.pool.findMany({
+    where: { vehicleId, status: { in: ['COMPLETED', 'CANCELLED'] } },
+    include: {
+      pickupZone: true,
+      requests: { include: { destZone: true, passenger: { select: { name: true } } } },
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take,
+  });
+}
 
 // Row lock: any other transaction that locks or changes this pool WAITS until we commit.
 // This is what stops two people from grabbing the same seat (rules.md B8). Prisma has no
