@@ -17,5 +17,48 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build: ./api
+    container_name: api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      # "db" is the service name above, resolved over the compose network - not localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tesla}:${POSTGRES_PASSWORD:-tesla}@db:5432/${POSTGRES_DB:-tesla_pool}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:8080}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    build:
+      context: ./web
+      # Build-time only (architecture.md): Vite bakes this into the JS bundle, so it must be
+      # a browser-reachable address, not the "api" service name (that only resolves inside compose).
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    container_name: web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    healthcheck:
+      # 127.0.0.1, not localhost: nginx.conf only listens on IPv4, and this image's wget
+      # resolves "localhost" to the IPv6 loopback first, which nginx never answers on.
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   db_data:
