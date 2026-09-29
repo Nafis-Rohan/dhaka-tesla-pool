@@ -2,7 +2,7 @@
 
 > Share a seat. Split the fare. Survive Dhaka traffic.
 
-**Demo video:** _TODO (max 6 minutes)_
+**Demo video:** [Project Walkthrough](https://drive.google.com/file/d/185M4auRiXVA7YYmR3Y-5Jf8lwZxsMcIy/view?usp=sharing)
 **Live deployment:** [dhaka-tesla-pool-snowy.vercel.app](https://dhaka-tesla-pool-snowy.vercel.app) (API: [dhaka-tesla-pool-api-j1dy.onrender.com](https://dhaka-tesla-pool-api-j1dy.onrender.com))
 
 ## Summary
@@ -36,7 +36,30 @@ Commuting alone in Dhaka traffic is slow and expensive, and most trips within th
 - Seat capacity is enforced by a DB `CHECK` constraint, not just application code — verified under concurrent requests (see [Concurrency Handling](#concurrency-handling))
 
 ## Screenshots
-_TODO: add once final UI polish is done_
+
+**Passenger flow**
+
+| Request a ride, with a live solo vs. pooled fare estimate | The booked ride, tracked through its own status timeline |
+|---|---|
+| ![Request a ride](docs/screenshots/2.png) | ![Ride requested](docs/screenshots/3.png) |
+
+| Auto-joined into a pool — "sharing with 1 other passenger" | Trip finished, fare locked in |
+|---|---|
+| ![Sharing with another passenger](docs/screenshots/5.png) | ![Fare locked at trip start](docs/screenshots/9.png) |
+
+**Driver flow**
+
+| Online, waiting for nearby requests | A waiting request in range, ready to accept |
+|---|---|
+| ![Online, no requests yet](docs/screenshots/1.png) | ![Nearby request with accept button](docs/screenshots/4.png) |
+
+| Trip matched — passengers, seats, and fares | Driver has arrived — no-show becomes available per passenger |
+|---|---|
+| ![Current trip, matched](docs/screenshots/6.png) | ![Driver arrived, no-show buttons](docs/screenshots/7.png) |
+
+| Trip started — drop-off per passenger | Trip history with cash earned per trip |
+|---|---|
+| ![Trip started, drop-off buttons](docs/screenshots/8.png) | ![Driver trip history](docs/screenshots/10.png) |
 
 ## Architecture
 
