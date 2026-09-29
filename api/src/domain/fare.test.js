@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateFare, estimate, qualifiesForPoolDiscount } from './fare.js';
+import { calculateFare, estimate, qualifiesForPoolDiscount, settleFare } from './fare.js';
 
 // Distances come from the seeded zone table (rules.md B2)
 const BANANI_TO_MOHAKHALI_M = 2500; // Nusrat
@@ -68,6 +68,30 @@ describe('calculateFare', () => {
     ['missing distance', { seats: 1 }],
   ])('rejects invalid input: %s', (_label, input) => {
     expect(() => calculateFare({ ...input, pooled: false })).toThrow(RangeError);
+  });
+});
+
+describe('settleFare (locks the final fare when the trip starts, from the stored parts)', () => {
+  // The parts stored on Nusrat's and Rafiq's requests when they booked
+  const nusratParts = { baseFare: 3000, distanceCharge: 5000 };
+  const rafiqParts = { baseFare: 3000, distanceCharge: 6000 };
+
+  it('gives Nusrat ৳64.00 and Rafiq ৳72.00 when they ride together', () => {
+    expect(settleFare(nusratParts, true)).toEqual({ poolDiscount: 1600, finalFare: 6400 });
+    expect(settleFare(rafiqParts, true)).toEqual({ poolDiscount: 1800, finalFare: 7200 });
+  });
+
+  it('gives Nusrat ৳80.00 with no discount when she ends up riding alone', () => {
+    expect(settleFare(nusratParts, false)).toEqual({ poolDiscount: 0, finalFare: 8000 });
+  });
+
+  it('agrees with calculateFare, so the two can never disagree', () => {
+    const full = calculateFare({ distanceM: 2500, seats: 1, pooled: true });
+
+    expect(settleFare({ baseFare: full.baseFare, distanceCharge: full.distanceCharge }, true)).toEqual({
+      poolDiscount: full.poolDiscount,
+      finalFare: full.finalFare,
+    });
   });
 });
 

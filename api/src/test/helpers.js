@@ -13,6 +13,8 @@ export const CAST = {
   nusrat: { name: 'Nusrat', phone: '01711000002', role: 'PASSENGER' },
   rafiq: { name: 'Rafiq', phone: '01711000003', role: 'PASSENGER' },
   shirin: { name: 'Shirin', phone: '01711000004', role: 'PASSENGER' },
+  // A second driver, only for tests: someone for the race loser to lose to (two drivers, one ride)
+  kamal: { name: 'Kamal', phone: '01711000005', role: 'DRIVER' },
 };
 const CAST_PHONES = Object.values(CAST).map((person) => person.phone);
 
@@ -116,17 +118,17 @@ export async function loginToken(person) {
 // --- Direct-to-database fixtures -------------------------------------------------------------
 // No pool can exist through the API until drivers can accept rides, so tests insert them directly.
 
-// Jashim's three-seat Bullet
-export function createBullet(driverId) {
+// Jashim's three-seat Bullet (pass overrides for another driver's Tesla, e.g. Kamal's "Rocket")
+export function createBullet(driverId, overrides = {}) {
   return prisma.vehicle.create({
-    data: { driverId, name: 'Bullet', plate: 'DHAKA-TESLA-3', capacity: 3 },
+    data: { driverId, name: 'Bullet', plate: 'DHAKA-TESLA-3', capacity: 3, ...overrides },
   });
 }
 
 // One vehicle trip. seatsTaken must match the seats of the requests you put in it.
-export function createPool({ vehicleId, pickupZoneId, seatsTaken = 0, status = 'MATCHED', isShared = true, capacity = 3 }) {
+export function createPool({ vehicleId, pickupZoneId, seatsTaken = 0, status = 'MATCHED', isShared = true, capacity = 3, ...overrides }) {
   return prisma.pool.create({
-    data: { vehicleId, pickupZoneId, seatsTaken, status, isShared, capacity },
+    data: { vehicleId, pickupZoneId, seatsTaken, status, isShared, capacity, ...overrides },
   });
 }
 
