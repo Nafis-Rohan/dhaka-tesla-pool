@@ -15,6 +15,11 @@ import { poolRoutes } from './modules/pools/pools.routes.js';
 
 export const app = express();
 
+// Render (and most hosts) put the app behind a reverse proxy: without this, express-rate-limit
+// sees the proxy's IP for every request instead of the real client's, making the auth rate limit
+// useless. Only trusted in production - locally there's no proxy to trust.
+if (env.nodeEnv === 'production') app.set('trust proxy', 1);
+
 app.use(requestLogger);
 app.use(helmet());
 app.use(cors({ origin: env.corsOrigins }));
