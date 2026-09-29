@@ -30,7 +30,7 @@ export function CurrentRideCard({ ride }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-4 p-6">
+    <div className="mx-auto flex max-w-md flex-col gap-4 p-6">
       <h1 className="text-xl font-semibold text-gray-900">Your ride</h1>
 
       <p className="text-sm text-gray-700">
@@ -43,12 +43,29 @@ export function CurrentRideCard({ ride }) {
           This ride was {ride.status.toLowerCase()}.
         </p>
       ) : (
-        <ol className="flex justify-between text-[11px] text-gray-500">
-          {STEPS.map((step, i) => (
-            <li key={step} className={i <= stepIndex ? 'font-medium text-gray-900' : ''}>
-              {step.replace('_', ' ')}
-            </li>
-          ))}
+        <ol className="flex items-start">
+          {STEPS.map((step, i) => {
+            const reached = i <= stepIndex
+            return (
+              <li key={step} className="flex flex-1 flex-col items-center last:flex-none">
+                <div className="flex w-full items-center">
+                  <div
+                    className={`h-3.5 w-3.5 shrink-0 rounded-full ${reached ? 'bg-gray-900' : 'bg-gray-300'}`}
+                  />
+                  {i < STEPS.length - 1 && (
+                    <div
+                      className={`h-1 flex-1 ${i < stepIndex ? 'bg-gray-900' : 'bg-gray-300'}`}
+                    />
+                  )}
+                </div>
+                <span
+                  className={`mt-1.5 whitespace-nowrap px-1 text-center text-[10px] ${reached ? 'font-medium text-gray-900' : 'text-gray-400'}`}
+                >
+                  {step.replace('_', ' ')}
+                </span>
+              </li>
+            )
+          })}
         </ol>
       )}
 
